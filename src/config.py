@@ -21,8 +21,11 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
 
     # LLM
+    llm_provider: Literal["openai", "gemini"] = "openai"
     openai_api_key: str = ""
     model_name: str = "gpt-4o-mini"
+    google_api_key: str = ""
+    gemini_model_name: str = "gemini-2.0-flash"
     llm_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
 
     # Database
@@ -31,6 +34,8 @@ class Settings(BaseSettings):
     # Vector Store
     chroma_persist_dir: str = "./data/chroma"
 
+    # MCP
+    mcp_clinical_url: str = "http://localhost:8001/mcp"
 
 @lru_cache
 def get_settings() -> Settings:
