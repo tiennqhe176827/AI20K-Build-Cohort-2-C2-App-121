@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     # MCP
     mcp_clinical_url: str = "http://localhost:8001/mcp"
 
+    # Security
+    secret_key: str = "change-me-in-production-use-a-real-secret"
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
