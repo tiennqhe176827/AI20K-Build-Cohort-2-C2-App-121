@@ -1,39 +1,42 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.routes import router
+from src.api import router
+from src.api.middleware import setup_all_middleware
 from src.config import get_settings
+from src.core.logging import setup_logging
+from src.database.engine import init_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
+    setup_logging()
+    init_db()
     print(f"Starting {settings.app_name} in {settings.app_env} mode")
     yield
     print("Shutting down...")
 
 
-app = FastAPI(
-    title="AI20K Agent",
-    description="AI Agent built with LangGraph",
-    version="1.0.0",
-    lifespan=lifespan,
-)
+def create_app() -> FastAPI:
+    settings = get_settings()
 
-settings = get_settings()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins.split(","),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    app = FastAPI(
+        title="AI20K Agent",
+        description="AI Agent built with LangGraph for clinical SOAP notes",
+        version="1.0.0",
+        lifespan=lifespan,
+    )
 
-app.include_router(router, prefix="/api/v1")
+    setup_all_middleware(app)
+    app.include_router(router)
+
+    @app.get("/health")
+    async def health():
+        return {"status": "ok", "env": settings.app_env}
+
+    return app
 
 
-@app.get("/health")
-async def health():
-    return {"status": "ok", "env": settings.app_env}
+app = create_app()
