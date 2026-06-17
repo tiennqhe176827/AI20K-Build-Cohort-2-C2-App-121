@@ -8,9 +8,22 @@
 # Exits 0 silently if no Python is found — hooks must never block the AI tool.
 set -u
 
-if command -v python3 >/dev/null 2>&1; then
+is_valid_py() {
+  local cmd_path
+  cmd_path=$(command -v "$1" 2>/dev/null)
+  if [ -n "$cmd_path" ]; then
+    case "$cmd_path" in
+      *WindowsApps*) return 1 ;;
+      *) return 0 ;;
+    esac
+  fi
+  return 1
+}
+
+PY=""
+if is_valid_py python3; then
   PY=python3
-elif command -v python >/dev/null 2>&1; then
+elif is_valid_py python; then
   PY=python
 elif command -v py >/dev/null 2>&1; then
   PY="py -3"
