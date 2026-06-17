@@ -1,201 +1,230 @@
-# 🤖 AI20K Agent Template
+# 🤖 AI Clinical Scribe - Trợ lý Tạo SOAP Note Y Khoa Tự Động
 
-Template chính thức cho học viên **VinUni AI20K Build Phase** — cung cấp sẵn cấu trúc dự án, code mẫu, và hướng dẫn kỹ thuật chi tiết để xây dựng AI Agent đạt điểm cao (35+/50).
+> **AI Clinical Scribe** là trợ lý trí tuệ nhân tạo thông minh dành cho bác sĩ. Ứng dụng nhận file âm thanh cuộc đối thoại khám bệnh giữa bác sĩ và bệnh nhân, tự động chuyển đổi thành văn bản tiếng Việt chính xác cao, hiệu chỉnh lỗi chính tả y khoa, và cấu trúc thành SOAP Note chuẩn y học.
 
-> 📖 **Technical Guidebook:** [phoenix.note.transformerlabs.ai/technical-book](https://phoenix.note.transformerlabs.ai/technical-book)
+---
 
-## 🎯 Template này dùng để làm gì?
+## 🎯 Tính năng chính
 
-Khi tham gia AI20K Build Phase, mỗi đội cần xây dựng một AI Agent hoàn chỉnh — từ kiến trúc, code, test, đến deploy. Thay vì bắt đầu từ con số không, template này cung cấp:
+- **Nhận dạng giọng nói (ASR):** Sử dụng mô hình `vinai/PhoWhisper-small` tối ưu riêng cho tiếng Việt để chuyển giọng nói y khoa thành văn bản.
+- **Hiệu đính chính tả y tế:** Dùng Gemini 2.0 Flash thông qua SDK mới `google-genai` để sửa lỗi phát âm, dấu câu, và chuẩn hóa các danh từ riêng/thuật ngữ tiếng Anh chuyên ngành mà không dịch nghĩa.
+- **Tự động hóa SOAP Note:** Trích xuất thông tin lâm sàng từ transcript thành 4 phần chuẩn: **Subjective** (Chủ quan), **Objective** (Khách quan), **Assessment** (Đánh giá), và **Plan** (Kế hoạch).
+- **Hệ thống API đầy đủ:** Hỗ trợ Đăng ký, Đăng nhập (JWT auth) và tra cứu lịch sử hồ sơ bệnh án.
+- **Tích hợp MCP (Model Context Protocol):** Đóng gói và tách biệt các tác vụ AI/ASR nặng thành một MCP Server riêng biệt.
 
-- **Cấu trúc thư mục chuẩn** — đã được thiết kế theo best practices (separation of concerns)
-- **Code mẫu** cho các phần cốt lõi: LangGraph agent, FastAPI API, config, schemas
-- **Docker + CI/CD sẵn** — Dockerfile multi-stage, GitHub Actions workflow
-- **Hướng dẫn kỹ thuật 10 chương** — từ clone template đến nộp bài Demo Day
-- **Checklist 10 deliverables** — đảm bảo không bỏ sót yêu cầu BTC
-- **AI Usage Logging tự động** — Pre-configured hooks cho Claude Code, Cursor, Codex, Gemini CLI, Antigravity, và GitHub Copilot
-
-## ⚡ Quick Start
-
-### Bước 1: Fork hoặc Clone
-
-```bash
-# Clone template
-git clone https://github.com/AI20K-Build-Cohort-2/starter-code-template.git team-YOUR_TEAM_NAME
-cd team-YOUR_TEAM_NAME
-
-# Xóa git history cũ và khởi tạo lại
-rm -rf .git
-git init
-git add .
-git commit -m "feat: khởi tạo dự án từ template"
-```
-
-### Bước 2: Setup môi trường
-
-```bash
-# Tạo virtual environment
-python3.11 -m venv .venv
-source .venv/bin/activate
-
-# Cài dependencies
-pip install -e ".[dev]"
-
-# Cấu hình API keys
-cp .env.example .env
-# Mở .env và thêm OPENAI_API_KEY của bạn
-# Đồng thời cập nhật AI_LOG_API_KEY bằng key riêng từ link mời của BTC
-# (giá trị trong .env.example chỉ là placeholder)
-```
-
-### Bước 3: Cài AI Logging Hooks
-
-```bash
-# Linux / macOS / Git Bash
-bash scripts/setup_hooks.sh
-
-# Windows PowerShell
-# powershell -ExecutionPolicy Bypass -File scripts\setup_hooks.ps1
-```
-
-Hooks tự động log mọi AI prompt khi dùng Claude Code, Cursor, Codex, Gemini CLI, Antigravity, hoặc GitHub Copilot. Không cần thao tác thủ công.
-
-### Bước 4: Chạy server
-
-```bash
-# Chạy FastAPI backend
-uvicorn src.main:app --reload --port 8000
-
-# Mở Swagger UI
-# http://localhost:8000/docs
-```
-
-### Bước 5: Đọc hướng dẫn
-
-📖 Mở **[Technical Guidebook](https://phoenix.note.transformerlabs.ai/technical-book)** và làm theo từng chương.
-
-## 📁 Cấu trúc dự án
-
-```
-├── src/
-│   ├── agents/           # 🧠 LangGraph Agent
-│   │   ├── graph.py      #    State graph (nodes + edges)
-│   │   ├── state.py      #    State schema (TypedDict)
-│   │   ├── nodes/        #    Node functions
-│   │   └── tools/        #    Agent tools (@tool)
-│   ├── api/              # 🌐 FastAPI Backend
-│   │   └── routes.py     #    API endpoints
-│   ├── models/           # 📋 Pydantic schemas
-│   ├── services/         # 🔧 Business logic (LLM, etc.)
-│   ├── config.py         # ⚙️ Pydantic Settings
-│   └── main.py           # 🚀 App entry point
-├── tests/                # 🧪 pytest suite
-│   ├── test_agents/      #    Agent/graph tests
-│   └── test_api/         #    API endpoint tests
-├── scripts/              # 🔌 AI Logging Hooks
-│   ├── log_hook.py       #    Auto-log cho Claude/Cursor/Codex/Gemini/Copilot
-│   ├── log_antigravity.py#    Antigravity IDE prompt scanner
-│   ├── log_manual.py     #    Manual log cho ChatGPT / web tools
-│   ├── submit_log.py     #    Submit logs on git push
-│   └── setup_hooks.sh    #    One-time hook installer
-├── .claude/ .codex/ .cursor/ .gemini/  # Per-tool hook configs
-├── .agents/              # Antigravity rules + workflows
-├── .ai-log/              # 📊 AI usage logs (auto-generated)
-├── docs/
-│   ├── guide/            # 📖 Technical Guidebook (10 chapters)
-│   └── architecture_diagram.md
-├── eval/                 # 📊 Evaluation results
-├── presentation/         # 🎤 Demo Day slides
-├── .github/workflows/    # ⚡ CI/CD (GitHub Actions)
-├── .github/hooks/        # 🪝 Copilot hook config
-├── Dockerfile            # 🐳 Multi-stage build
-├── docker-compose.yml    # 🐙 Full stack orchestration
-└── README_boilerplate.md # 📝 README template cho đội của bạn
-```
-
-## 📚 Technical Guidebook — 10 Chương
-
-| Chương | Nội dung | Thời gian |
-|---------|----------|-----------|
-| 1 | Lời mở đầu — Mục tiêu, cách sử dụng | 15 phút |
-| 2 | Khởi tạo dự án — Clone, setup, git workflow | 4 giờ |
-| 3 | Thiết kế kiến trúc — 3-tier, diagrams, ADR | 6 giờ |
-| 4 | **LangGraph Agent** — State, nodes, edges, tools, RAG | 8 giờ |
-| 5 | FastAPI — Routes, validation, error handling, streaming | 6 giờ |
-| 6 | Giao diện — Next.js + Streamlit quickstart | 6 giờ |
-| 7 | DevOps — Docker, CI/CD, deploy, logging | 6 giờ |
-| 8 | Kiểm thử — Unit test, integration test, RAGAS | 4 giờ |
-| 9 | Demo Day — 10 deliverables, checklist, tips | 2 giờ |
-| 10 | Tài nguyên — Khóa học, docs, BMAD method | tham khảo |
-
-📖 **Đọc online:** [phoenix.note.transformerlabs.ai/technical-book](https://phoenix.note.transformerlabs.ai/technical-book)
-
-## 📋 10 Deliverables cho Demo Day
-
-| # | Deliverable | File vị trí | Template có sẵn |
-|---|-------------|-------------|:---:|
-| 1 | Source Code | `src/` | ✅ |
-| 2 | README.md | `README_boilerplate.md` → copy thành `README.md` | ✅ |
-| 3 | Architecture Diagram | `docs/architecture_diagram.md` | ✅ |
-| 4 | AI Logs | LangSmith (3 env vars) + Auto AI Usage Logging | ✅ |
-| 5 | Live URL | Deploy lên Render/Vercel | ⚡ CI/CD sẵn |
-| 6 | Video Demo | `presentation/` | 📝 |
-| 7 | Pitch Deck | `presentation/` | 📝 |
-| 8 | Development Journal | `JOURNAL.md` | ✅ |
-| 9 | Worklog | `WORKLOG.md` | ✅ |
-| 10 | Evaluation Evidence | `eval/` | 📝 |
+---
 
 ## 🛠 Tech Stack
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| AI Agent | LangGraph + LangChain | Latest |
-| Backend | FastAPI + Uvicorn | 0.100+ |
-| LLM | OpenAI GPT-4o-mini | API |
-| Frontend | Next.js / Streamlit | 14+ / 1.30+ |
-| Database | SQLite (dev) / PostgreSQL (prod) | — |
-| DevOps | Docker + GitHub Actions | — |
-| Testing | pytest + pytest-asyncio | 8+ |
+- **AI Agent Workflow:** LangGraph
+- **LLM Engine:** Google Gemini 2.0 Flash (sử dụng SDK `google-genai`)
+- **ASR Engine:** HuggingFace Transformers (`vinai/PhoWhisper-small`)
+- **API Backend:** FastAPI, Uvicorn, Pydantic v2
+- **Database Layer:** SQLite (Development) / PostgreSQL (Production) + SQLAlchemy ORM
 
-## 📊 AI Usage Logging
+---
 
-Template đã tích hợp sẵn auto-logging hooks cho 6 AI tools:
+## 📋 Yêu cầu hệ thống & Biến môi trường
 
-| Tool | Cơ chế | Config |
-|------|--------|--------|
-| Claude Code | `.claude/settings.json` hooks | Tự động |
-| Cursor | `.cursor/hooks.json` | Tự động |
-| OpenAI Codex CLI | `.codex/hooks.json` | Tự động |
-| Gemini CLI | `.gemini/settings.json` | Tự động |
-| GitHub Copilot | `.github/hooks/hooks.json` | Tự động |
-| Antigravity IDE | Pre-push scan transcript | Tự động trên `git push` |
+Ứng dụng đọc cấu hình từ file `.env`. Hãy tạo file `.env` từ file mẫu `.env.example`:
 
-Tất cả prompts và tool calls được log vào `.ai-log/session.jsonl` và tự động submit lên grading server mỗi khi `git push`.
-
-**ChatGPT / web tools khác** — log thủ công:
 ```bash
-bash scripts/_pyrun.sh scripts/log_manual.py --tool chatgpt --prompt "What you asked"
+cp .env.example .env
 ```
 
-> ⚠️ Chạy `bash scripts/setup_hooks.sh` một lần sau khi clone để cài pre-push hook.
+Các biến môi trường cần thiết cấu hình trong `.env`:
 
-## 📖 Đọc Technical Guidebook
+| Biến môi trường | Loại | Giá trị mặc định / Ví dụ | Mô tả |
+| :--- | :--- | :--- | :--- |
+| **`GOOGLE_API_KEY`** | Bắt buộc | `AIzaSy...` | API Key của Google Gemini dùng để hiệu đính và tạo SOAP note. |
+| **`GEMINI_MODEL_NAME`** | Tùy chọn | `gemini-2.0-flash` | Model Gemini được sử dụng bởi hệ thống. |
+| **`LLM_PROVIDER`** | Tùy chọn | `gemini` | Chọn `gemini` hoặc `openai`. |
+| **`DATABASE_URL`** | Tùy chọn | `sqlite:///./data/app.db` | Đường dẫn kết nối Database. Mặc định dùng SQLite cục bộ. |
+| **`APP_HOST`** | Tùy chọn | `0.0.0.0` | IP Host để lắng nghe các kết nối đến. |
+| **`APP_PORT`** | Tùy chọn | `8000` | Port chạy ứng dụng FastAPI Backend. |
+| **`LOG_LEVEL`** | Tùy chọn | `INFO` | Mức độ ghi nhận log hệ thống (`DEBUG`, `INFO`, `WARNING`, `ERROR`). |
+| **`AI_LOG_API_KEY`** | Bắt buộc | Key được BTC cấp | Mã API Key để gửi nhật ký sử dụng AI (Grading Server AI20K). |
 
-**Online (khuyến nghị):** [phoenix.note.transformerlabs.ai/technical-book](https://phoenix.note.transformerlabs.ai/technical-book)
+---
 
-Đăng nhập bằng GitHub (cùng account đã được BTC mời vào org `AI20K-Build-Cohort-2`)
-→ chọn tab **Technical Book** ở sidebar trái → đọc 10 chương + topic sections,
-có table of contents bên phải, hỗ trợ light/dark/cyberpunk theme.
+## 🚀 Hướng dẫn cài đặt & Chạy ứng dụng
 
-**Offline:** mọi chương đều ở thư mục `docs/guide/` trong template này — mở bằng
-bất kỳ markdown viewer/editor nào (VS Code, Obsidian, GitHub UI, …).
+### Bước 1: Clone dự án và di chuyển vào thư mục
+```bash
+git clone https://github.com/AI20K-Build-Cohort-2/C2-App-121.git
+cd C2-App-121
+```
 
-## 🔗 Liên kết
+### Bước 2: Khởi tạo và kích hoạt môi trường ảo (Virtual Env)
+- **Trên Windows (PowerShell):**
+  ```powershell
+  python -m venv .venv
+  .venv\Scripts\Activate.ps1
+  ```
+- **Trên Linux / macOS:**
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  ```
 
-- 📖 **Technical Guidebook:** [phoenix.note.transformerlabs.ai/technical-book](https://phoenix.note.transformerlabs.ai/technical-book)
-- 🏫 **AI20K Program:** VinUni AI20K Build Phase
-- 👨‍🏫 **Mentor:** Đặng Hải Lộc
+### Bước 3: Cài đặt các gói thư viện phụ thuộc
+```bash
+pip install -e ".[dev]"
+```
+
+### Bước 4: Thiết lập AI Hooks Logging (Bắt buộc cho AI20K Cohort 2)
+Cài đặt pre-push hook để tự động nộp log tương tác AI:
+- **Trên Windows (PowerShell):**
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File scripts/setup_hooks.ps1
+  ```
+- **Trên Linux / macOS / Git Bash:**
+  ```bash
+  bash scripts/setup_hooks.sh
+  ```
+
+### Bước 5: Khởi chạy MCP Clinical Server (Cổng 8001)
+Chạy server phụ trách công cụ AI (Chuyển giọng nói & xử lý ngôn ngữ y tế):
+```bash
+python src/agents/mcp/server.py
+```
+
+### Bước 6: Khởi chạy FastAPI Backend (Cổng 8000)
+Mở một terminal mới (nhớ kích hoạt `.venv` trước) và chạy:
+```bash
+uvicorn src.main:app --reload --port 8000
+```
+Sau khi chạy thành công, giao diện tài liệu API tự động (Swagger UI) sẽ mở tại: [http://localhost:8000/docs](http://localhost:8000/docs).
+
+---
+
+## 🧪 Các câu lệnh mẫu để chạy thử (Sample Queries)
+
+Bạn có thể chạy thử trực tiếp qua giao diện Swagger UI hoặc dùng công cụ terminal (`curl` hoặc `PowerShell`).
+
+Dưới đây là kịch bản chạy thử từ lúc **Đăng ký tài khoản** đến **Tạo SOAP Note từ file ghi âm**:
+
+### 1. Đăng ký tài khoản Bác sĩ mới (Register)
+
+- **Sử dụng `curl` (Linux/Git Bash):**
+  ```bash
+  curl -X POST "http://localhost:8000/api/v1/auth/register" \
+       -H "Content-Type: application/json" \
+       -d '{
+         "email": "doctor.test@example.com",
+         "password": "SecurePassword123",
+         "full_name": "Nguyễn Văn A"
+       }'
+  ```
+
+- **Sử dụng `PowerShell` (Windows):**
+  ```powershell
+  $body = @{
+      email = "doctor.test@example.com"
+      password = "SecurePassword123"
+      full_name = "Nguyễn Văn A"
+  } | ConvertTo-Json
+  Invoke-RestMethod -Uri "http://localhost:8000/api/v1/auth/register" -Method Post -Body $body -ContentType "application/json"
+  ```
+
+*Kết quả trả về sẽ có dạng:*
+```json
+{
+  "access_token": "eyJhbGciOi...",
+  "refresh_token": "eyJhbGciOi...",
+  "token_type": "bearer"
+}
+```
+> **Lưu ý:** Hãy sao chép chuỗi `access_token` để điền vào phần `<YOUR_ACCESS_TOKEN>` trong các câu lệnh tiếp theo.
+
+---
+
+### 2. Đăng nhập để lấy Token (Login)
+
+Nếu đã có tài khoản, sử dụng endpoint này để nhận Access Token mới:
+
+- **Sử dụng `curl`:**
+  ```bash
+  curl -X POST "http://localhost:8000/api/v1/auth/login" \
+       -H "Content-Type: application/json" \
+       -d '{
+         "email": "doctor.test@example.com",
+         "password": "SecurePassword123"
+       }'
+  ```
+
+- **Sử dụng `PowerShell`:**
+  ```powershell
+  $body = @{
+      email = "doctor.test@example.com"
+      password = "SecurePassword123"
+  } | ConvertTo-Json
+  Invoke-RestMethod -Uri "http://localhost:8000/api/v1/auth/login" -Method Post -Body $body -ContentType "application/json"
+  ```
+
+---
+
+### 3. Gửi file âm thanh khám bệnh để tạo SOAP Note
+
+Gửi file âm thanh hội thoại lâm sàng (`.mp3`, `.wav`, `.m4a`, `.ogg`, v.v.) qua request `multipart/form-data`. Yêu cầu truyền kèm token xác thực Bearer trong Header.
+
+- **Sử dụng `curl`:**
+  *(Hãy chuẩn bị một file âm thanh ví dụ như `audio_record.wav` ở thư mục hiện hành)*
+  ```bash
+  curl -X POST "http://localhost:8000/api/v1/clinical/soap-note" \
+       -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>" \
+       -F "file=@audio_record.wav"
+  ```
+
+- **Sử dụng `PowerShell`:**
+  ```powershell
+  $headers = @{
+      Authorization = "Bearer <YOUR_ACCESS_TOKEN>"
+  }
+  $filePath = "audio_record.wav"
+  Invoke-RestMethod -Uri "http://localhost:8000/api/v1/clinical/soap-note" -Method Post -Headers $headers -Form @{ file = Get-Item $filePath }
+  ```
+
+*Kết quả trả về mẫu:*
+```json
+{
+  "transcript": "bệnh nhân nam 45 tuổi khai đau ngực trái âm ỉ hai ngày nay...",
+  "corrected_transcript": "Bệnh nhân nam, 45 tuổi, khai đau ngực trái âm ỉ hai ngày nay...",
+  "soap_note": "# S - Subjective\n- Bệnh nhân nam 45 tuổi, phàn nàn đau ngực trái âm ỉ 2 ngày nay.\n\n# O - Objective\n- Chưa ghi nhận chỉ số khám thực thể.\n\n# A - Assessment\n- Đau ngực trái chưa rõ nguyên nhân.\n\n# P - Plan\n- Đề nghị đo điện tâm đồ (ECG) và siêu âm tim."
+}
+```
+
+---
+
+### 4. Truy vấn lịch sử SOAP Note của bạn (History)
+
+- **Sử dụng `curl`:**
+  ```bash
+  curl -X GET "http://localhost:8000/api/v1/clinical/history?skip=0&limit=10" \
+       -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>"
+  ```
+
+- **Sử dụng `PowerShell`:**
+  ```powershell
+  $headers = @{
+      Authorization = "Bearer <YOUR_ACCESS_TOKEN>"
+  }
+  Invoke-RestMethod -Uri "http://localhost:8000/api/v1/clinical/history?skip=0&limit=10" -Method Get -Headers $headers
+  ```
+
+---
+
+## 📁 Cấu trúc Dự Án chính
+
+- `src/agents/` — Chứa định nghĩa đồ thị LangGraph Agent (`graph.py`, `state.py`, các node xử lý).
+- `src/agents/mcp/` — Client và Server của Model Context Protocol.
+- `src/api/` — Chứa định nghĩa các endpoints FastAPI y tế và xác thực người dùng.
+- `src/models/` — Pydantic schemas và SQLAlchemy models của Database.
+- `src/services/` — Kết nối các SDK bên ngoài (Gemini client, local storage).
+- `tests/` — Bộ kiểm thử tự động pytest.
+
+---
 
 ## 📄 License
 
-MIT — Sử dụng tự do cho mục đích giáo dục.
+Dự án phát triển dưới giấy phép MIT. Sử dụng tự do cho các mục đích học tập và phát triển lâm sàng phi lợi nhuận.
