@@ -146,15 +146,13 @@ def _conv_cwds(transcript: Path) -> set[str]:
 
 
 def _conv_matches_repo(cwds: set[str], repo_root_n: str) -> bool:
-    """True if any cwd is equal to, ancestor of, or descendant of the repo."""
+    """True if any cwd is equal to or descendant of the repo."""
     if not repo_root_n or not cwds:
         return False
     for cwd in cwds:
         if cwd == repo_root_n:
             return True
         if cwd.startswith(repo_root_n + "\\"):
-            return True
-        if repo_root_n.startswith(cwd + "\\"):
             return True
     return False
 
